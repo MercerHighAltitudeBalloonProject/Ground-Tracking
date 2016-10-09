@@ -5,11 +5,12 @@ from __future__ import division
 import math
 
 
-class compass():
+class Compass():
 
-    def __init__(self, current_lat, current_lon):
+    def __init__(self, current_lat, current_lon, current_alt):
         self.current_lon = current_lon
         self.current_lat = current_lat
+        self.current_alt = current_alt
 
 
     def get_bearing(self, remote_Lat, remote_Lon):
@@ -57,3 +58,10 @@ class compass():
         
         return distance*3280.839895 # multiply distance in Km by 3280 for feet
 
+    def get_elevation(self, remote_Lat, remote_Lon, remote_alt):
+        deltaAlt = float(remote_alt) - self.current_alt
+        distanceToTarget = self.get_distance(remote_Lat, remote_Lon)
+        return math.degrees(math.atan2(deltaAlt,distanceToTarget))
+
+    def __repr__(self):
+        return "Compass: ({0},{1},{2})".format(self.current_lat, self.current_lon, self.current_alt)
