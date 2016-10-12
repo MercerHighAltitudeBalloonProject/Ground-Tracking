@@ -5,11 +5,11 @@ Created on Mon Sep 19 17:31:15 2016
 @author: Ground Station
 """
 
-#import serial
+
 from __future__ import division
+import serial
 import time
 import math
-import geojson
 from compass  import Compass
 import json
 
@@ -22,7 +22,7 @@ tiltChannel = 1
 servoAttached = True
 
 groundAlt = 0.00
-centerBear = 0.00
+centerBear = -90
 antennaBear = 0.00
 antennaEle = 0.00
 
@@ -84,14 +84,14 @@ class antenna_tracker():
             elif (((centerBear - bearing) > 180) and (centerBear <=180)):
                     temp = centerBear
                     centerBear = 360 + temp
-            print ("\tBearing: %.0f" %bearing)
-            print ("\tElevation Angle: %.0f"%elevation)
+            #print ("\tBearing: %.0f" %bearing)
+            #print ("\tElevation Angle: %.0f"%elevation)
             #panTo = (((offsetDegrees-bearing+panOffset)*255)/panRange)+127.5
             # With new digital servos, can use map method as described here: http://arduino.cc/en/reference/map
             panTo = ((bearing - (centerBear - 168)) * (servo_max - servo_min) / ((centerBear + 168) - (centerBear - 168)) + servo_min) + (255*panOffset/360)
             if panTo > 254: panTo = 254
             if panTo < 0: panTo = 0
-            print "\tServo Degrees:"
+            #print "\tServo Degrees:"
             if servoAttached:
                 self.movePanServo(math.trunc(panTo)) 
             #tiltTo = (255*(96-elevation))/90
@@ -111,37 +111,37 @@ class antenna_tracker():
 
 
     def moveTiltServo(self, position):
-    #             s = serial.Serial(self.servo_COM, baudrate = servoBaud, timeout = servoTimeout)
-    #             #move tilt
-    #             if(position < 70):          #80 degrees upper limit
-    #                     moveTilt = [moveCommand,tiltChannel,chr(70)]
-    #             elif(position > 123):       #5 degrees lower limit
-    #                     moveTilt = [moveCommand,tiltChannel,chr(123)]
-    #             else:
-    #                     moveTilt = [moveCommand,tiltChannel,chr(position)]
-    #             s.write(moveTilt)
-    #             print "\t\tTilt Pan: ", float(position)
-    #             #RFD (for use with a second antenna tracker)
-    # #            moveTilt = [moveCommand,rfd_tiltChannel,chr(position)]
-    #             s.close()
-                print("Tilting")
+                s = serial.Serial(self.servo_COM, baudrate = servoBaud, timeout = servoTimeout)
+                #move tilt
+                if(position < 70):          #80 degrees upper limit
+                        moveTilt = [moveCommand,tiltChannel,chr(70)]
+                elif(position > 123):       #5 degrees lower limit
+                        moveTilt = [moveCommand,tiltChannel,chr(123)]
+                else:
+                        moveTilt = [moveCommand,tiltChannel,chr(position)]
+                s.write(moveTilt)
+                #print "\t\tTilt Pan: ", float(position)
+                #RFD (for use with a second antenna tracker)
+    #            moveTilt = [moveCommand,rfd_tiltChannel,chr(position)]
+                s.close()
+                #print("Tilting")
 
     def movePanServo(self, position):
-    #             s = serial.Serial(self.servo_COM, baudrate = servoBaud, timeout = servoTimeout)
-    #             '''
-    #             if previousPan > position:
-    #                 position += 1
-    #             previousPan = position
-    #             '''
-    #             #move Ubiquity
-    #             movePan = [moveCommand,panChannel,chr(255-position)]
-    #             s.write(movePan)
-    #             #move RFD
-    #  #           movePan = [moveCommand,rfd_panChannel,chr(255-position)]
-    # #            s.write(movePan)
-    #             print "\t\tMove Pan: ", float(position)
-    #             s.close()
-                print("Paning")
+                s = serial.Serial(self.servo_COM, baudrate = servoBaud, timeout = servoTimeout)
+                '''
+                if previousPan > position:
+                    position += 1
+                previousPan = position
+                '''
+                #move Ubiquity
+                movePan = [moveCommand,panChannel,chr(255-position)]
+                s.write(movePan)
+                #move RFD
+     #           movePan = [moveCommand,rfd_panChannel,chr(255-position)]
+    #            s.write(movePan)
+                #print "\t\tMove Pan: ", float(position)
+                s.close()
+                #print("Paning")
             
     def pointToTarget(self, latitude, longitude, altitude):
         
@@ -149,7 +149,7 @@ class antenna_tracker():
         bearing = self.compass.get_bearing(latitude, longitude)   
         angle = self.compass.get_elevation(latitude, longitude, altitude)
         feet_to_miles = (1/5280)
-        print("{0:.2f}, {1:.2f}, {2:.2f}".format(distance*feet_to_miles,bearing,angle))
+        print("Dist={0:.2f}, Bearing={1:.2f}, Angle={2:.2f}".format(distance*feet_to_miles,bearing,angle))
         self.moveToTarget(bearing, angle)
 
          
@@ -164,7 +164,9 @@ if __name__ == "__main__":
     gps_file = open("in.txt", "r")
 
     for line in gps_file:
-        lat,lon,alt = [float(x) for x in line.split(", ")]
+        lat,lon,alt = [float(x) for x in line.split(",")]
+        print("LAT:", lat, "LON", lon, "ALT",alt)
         tracker.pointToTarget(lat,lon,alt)
+        time.sleep(5)
 
     gps_file.close()
