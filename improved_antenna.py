@@ -7,11 +7,13 @@ Created on Mon Sep 19 17:31:15 2016
 
 
 from __future__ import division
-import serial
+#import serial
 import time
 import math
 from compass  import Compass
 import json
+import aprslib
+import datetime
 
 servoCOM = "COM5"
 servoBaud = 9600
@@ -111,37 +113,27 @@ class antenna_tracker():
 
 
     def moveTiltServo(self, position):
-                s = serial.Serial(self.servo_COM, baudrate = servoBaud, timeout = servoTimeout)
-                #move tilt
-                if(position < 70):          #80 degrees upper limit
-                        moveTilt = [moveCommand,tiltChannel,chr(70)]
-                elif(position > 123):       #5 degrees lower limit
-                        moveTilt = [moveCommand,tiltChannel,chr(123)]
-                else:
-                        moveTilt = [moveCommand,tiltChannel,chr(position)]
-                s.write(moveTilt)
-                #print "\t\tTilt Pan: ", float(position)
-                #RFD (for use with a second antenna tracker)
-    #            moveTilt = [moveCommand,rfd_tiltChannel,chr(position)]
-                s.close()
-                #print("Tilting")
+        pass
+                # s = serial.Serial(self.servo_COM, baudrate = servoBaud, timeout = servoTimeout)
+                # #move tilt
+                # if(position < 70):          #80 degrees upper limit
+                #         moveTilt = [moveCommand,tiltChannel,chr(70)]
+                # elif(position > 123):       #5 degrees lower limit
+                #         moveTilt = [moveCommand,tiltChannel,chr(123)]
+                # else:
+                #         moveTilt = [moveCommand,tiltChannel,chr(position)]
+                # s.write(moveTilt)
+                # s.close()
+
 
     def movePanServo(self, position):
-                s = serial.Serial(self.servo_COM, baudrate = servoBaud, timeout = servoTimeout)
-                '''
-                if previousPan > position:
-                    position += 1
-                previousPan = position
-                '''
-                #move Ubiquity
-                movePan = [moveCommand,panChannel,chr(255-position)]
-                s.write(movePan)
-                #move RFD
-     #           movePan = [moveCommand,rfd_panChannel,chr(255-position)]
-    #            s.write(movePan)
-                #print "\t\tMove Pan: ", float(position)
-                s.close()
-                #print("Paning")
+        pass
+                #s = serial.Serial(self.servo_COM, baudrate = servoBaud, timeout = servoTimeout)
+
+                #movePan = [moveCommand,panChannel,chr(255-position)]
+                #s.write(movePan)
+                #s.close()
+
             
     def pointToTarget(self, latitude, longitude, altitude):
         
@@ -152,21 +144,29 @@ class antenna_tracker():
         print("Dist={0:.2f}, Bearing={1:.2f}, Angle={2:.2f}".format(distance*feet_to_miles,bearing,angle))
         self.moveToTarget(bearing, angle)
 
-         
+
+tracker = antenna_tracker("COM5", 26.676167, -81.878667, 0)
+callsign = u'KD4NFS-9'
+
+def callback(packet):
+        data = aprslib.parse(packet)
+
+        if('timestamp' in data and 'latitude' in data and 'longitude'in data and 'altitude'in data):
+            #print(data['from'])
+            if(data['from'] == callsign):
+                print(data['from'], datetime.datetime.fromtimestamp(int(data['timestamp'])).strftime('%Y-%m-%d %H:%M:%S')
+                    ,data['latitude'], data['longitude'])
+                tracker.pointToTarget(data['latitude'], data['longitude'], data['altitude'])
+
+
          
 if __name__ == "__main__":
 
     print("Starting Servo Tester")
     print("------------------------------")    
     
-    tracker = antenna_tracker("COM5", 32.827103, -83.649268, 0)
     
-    gps_file = open("in.txt", "r")
 
-    for line in gps_file:
-        lat,lon,alt = [float(x) for x in line.split(",")]
-        print("LAT:", lat, "LON", lon, "ALT",alt)
-        tracker.pointToTarget(lat,lon,alt)
-        time.sleep(5)
-
-    gps_file.close()
+    AIS = aprslib.IS("N0CALL")
+    AIS.connect()
+    AIS.consumer(callback, raw=True)
